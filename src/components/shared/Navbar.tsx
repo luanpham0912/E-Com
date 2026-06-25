@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, ShoppingBag, Search, Sun, Moon, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, ShoppingBag, Search, Sun, Moon, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useAppSelector } from '@/app/hooks';
-import { useAppDispatch } from '@/app/hooks';
-import { switchRole, logout } from '@/features/auth/authSlice';
+import { useAuthStore } from '@/store/authStore';
+import { useCartStore } from '@/store/cartStore';
+import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
 
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
@@ -22,26 +21,22 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const cartItems = useAppSelector((s) => s.cart.items);
-  const { user, isAuthenticated } = useAppSelector((s) => s.auth);
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuthStore();
+  const cartItems = useCartStore((s) => s.items);
+  const { theme, setTheme } = useUIStore();
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('theme');
-      return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
+    const next = isDark ? 'light' : 'dark';
+    setTheme(next);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
 
   useEffect(() => {
@@ -59,7 +54,6 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
             <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
               <ShoppingBag className="w-4 h-4 text-primary-foreground" strokeWidth={1.5} />
@@ -67,7 +61,6 @@ export default function Navbar() {
             <span>Store</span>
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <Link
@@ -83,9 +76,7 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Right actions */}
           <div className="flex items-center gap-2">
-            {/* Search toggle */}
             <AnimatePresence>
               {searchOpen && (
                 <motion.div
@@ -115,7 +106,6 @@ export default function Navbar() {
               <Search className="w-4 h-4" strokeWidth={1.5} />
             </Button>
 
-            {/* Theme toggle */}
             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={toggleTheme}>
               {isDark ? (
                 <Sun className="w-4 h-4" strokeWidth={1.5} />
@@ -124,7 +114,6 @@ export default function Navbar() {
               )}
             </Button>
 
-            {/* Cart */}
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingBag className="w-4 h-4" strokeWidth={1.5} />
@@ -141,24 +130,18 @@ export default function Navbar() {
               </Button>
             </Link>
 
-            {/* User / Role switcher */}
             {isAuthenticated && (
               <Button
                 variant="outline"
                 size="sm"
                 className="hidden md:flex text-xs"
-                onClick={() =>{
-                  navigate('/')
-                  dispatch(logout())
-                }}
+                onClick={handleLogout}
               >
-                <User className="w-3 h-3 mr-1" strokeWidth={1.5} />
-                {/* {user?.role === 'admin' ? 'Switch to Store' : 'Switch to Admin'} */}
+                <LogOut className="w-3 h-3 mr-1" strokeWidth={1.5} />
                 Logout
               </Button>
             )}
 
-            {/* Mobile hamburger */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon">
@@ -197,12 +180,10 @@ export default function Navbar() {
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => {
-                        dispatch(switchRole(user?.role === 'admin' ? 'customer' : 'admin'));
-                        setMobileOpen(false);
-                      }}
+                      onClick={handleLogout}
                     >
-                      {user?.role === 'admin' ? 'Switch to Store' : 'Switch to Admin'}
+                      <LogOut className="w-3 h-3 mr-1" strokeWidth={1.5} />
+                      Logout
                     </Button>
                     <Button variant="ghost" size="icon" onClick={toggleTheme}>
                       {isDark ? <Sun className="w-4 h-4" strokeWidth={1.5} /> : <Moon className="w-4 h-4" strokeWidth={1.5} />}

@@ -1,18 +1,20 @@
 import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { User } from '../models/User.js';
 import { authRequired, signToken } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { HttpError } from '../middleware/error.js';
 import { serializeUser } from '../utils/serialize.js';
+import { config } from '../config/env.js';
 
 const router = Router();
 
 const registerSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email(),
-  password: z.string().min(6).max(100),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const loginSchema = z.object({
@@ -24,6 +26,30 @@ const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   avatar: z.string().url().optional(),
 });
+
+function setAuthCookies(res: Response, token: string) {
+  const isProd = config.nodeEnv === 'production';
+  res.cookie('access_token', token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  res.cookie('csrf_token', csrfToken, {
+    httpOnly: false,
+    secure: isProd,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+}
+
+function clearAuthCookies(res: Response) {
+  res.clearCookie('access_token', { path: '/' });
+  res.clearCookie('csrf_token', { path: '/' });
+}
 
 router.post('/register', validate(registerSchema), async (req: Request, res: Response) => {
   const { name, email, password } = req.body as z.infer<typeof registerSchema>;
@@ -41,7 +67,8 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
   });
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
-  res.status(201).json({ data: { user: serializeUser(user), token } });
+  setAuthCookies(res, token);
+  res.status(201).json({ data: { user: serializeUser(user) } });
 });
 
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
@@ -54,7 +81,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
   if (!ok) throw new HttpError(401, 'Invalid email or password');
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
-  res.json({ data: { user: serializeUser(user), token } });
+  setAuthCookies(res, token);
+  res.json({ data: { user: serializeUser(user) } });
 });
 
 router.get('/me', authRequired, async (req: Request, res: Response) => {
@@ -71,7 +99,7 @@ router.put('/me', authRequired, validate(updateProfileSchema), async (req: Reque
 });
 
 router.post('/logout', (_req: Request, res: Response) => {
-  // JWT is stateless; client should drop the token
+  clearAuthCookies(res);
   res.json({ data: { ok: true } });
 });
 

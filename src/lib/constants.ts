@@ -17,11 +17,6 @@ export const ROUTES = {
   ADMIN_SETTINGS: '/admin/settings',
 } as const;
 
-export const MOCK_CREDENTIALS = {
-  admin: { email: 'admin@store.com', password: 'admin123' },
-  customer: { email: 'customer@store.com', password: 'customer123' },
-} as const;
-
 export const ORDER_STATUSES = [
   'pending',
   'processing',

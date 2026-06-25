@@ -1,32 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, ChevronRight, Lock } from 'lucide-react';
+import { Check, ChevronRight, Lock, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import EmptyState from '@/components/shared/EmptyState';
 import { shippingSchema, paymentSchema, type ShippingFormData, type PaymentFormData } from '@/lib/schemas';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { clearCart } from '@/features/cart/cartSlice';
-import { createOrderAsync } from '@/features/orders/ordersSlice';
+import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { useCreateOrder } from '@/hooks/useOrders';
+import { useProducts } from '@/hooks/useProducts';
 import { formatCurrency } from '@/lib/utils';
 import { TAX_RATE } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const STEPS = ['Shipping', 'Payment', 'Review'];
 
 export default function CheckoutPage() {
   const [step, setStep] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { items } = useAppSelector((s) => s.cart);
-  const { user } = useAppSelector((s) => s.auth);
-  const products = useAppSelector((s) => s.products.items);
+  const { items, clearCart } = useCartStore();
+  const { user } = useAuthStore();
+  const { data: productsData } = useProducts({ limit: 100 });
+  const createOrder = useCreateOrder();
+  const products = productsData?.items ?? [];
+
+  useEffect(() => {
+    if (!user) navigate('/login');
+  }, [user, navigate]);
 
   const shippingForm = useForm<ShippingFormData>({
     resolver: zodResolver(shippingSchema),
@@ -59,36 +66,46 @@ export default function CheckoutPage() {
       navigate('/login');
       return;
     }
+    if (items.length === 0) {
+      toast.error('Your cart is empty');
+      navigate('/cart');
+      return;
+    }
     const data = shippingForm.getValues();
-    setSubmitting(true);
-    const result = await dispatch(
-      createOrderAsync({
-        shippingAddress: {
-          fullName: data.fullName,
-          line1: data.line1,
-          line2: data.line2,
-          city: data.city,
-          state: data.state,
-          zip: data.zip,
-          country: data.country,
-        },
-      })
-    );
-    setSubmitting(false);
-    if (createOrderAsync.fulfilled.match(result)) {
-      dispatch(clearCart());
-      navigate(`/order/${result.payload.id}`);
-    } else {
-      // surface the error (basic)
-      console.error('Order failed:', result.payload);
+    try {
+      const order = await createOrder.mutateAsync({
+        fullName: data.fullName,
+        line1: data.line1,
+        line2: data.line2,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        country: data.country,
+      });
+      clearCart();
+      navigate(`/order/${order.id}`);
+    } catch {
+      toast.error('Failed to place order. Please try again.');
     }
   };
+
+  if (items.length === 0) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-24">
+        <EmptyState
+          icon={<ShoppingBag className="w-8 h-8" strokeWidth={1.5} />}
+          title="Your cart is empty"
+          description="Add some items to your cart before checking out."
+          action={{ label: 'Start shopping', href: '/shop' }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 py-12">
       <h1 className="text-3xl font-bold tracking-tight mb-8">Checkout</h1>
 
-      {/* Progress */}
       <div className="flex items-center gap-2 mb-12">
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
@@ -113,7 +130,6 @@ export default function CheckoutPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-12">
-        {/* Form area */}
         <div className="lg:col-span-2">
           <AnimatePresence mode="wait">
             {step === 0 && (
@@ -288,9 +304,9 @@ export default function CheckoutPage() {
                     className="flex-1"
                     size="lg"
                     onClick={handlePlaceOrder}
-                    disabled={submitting}
+                    disabled={createOrder.isPending}
                   >
-                    {submitting ? 'Placing order...' : 'Place Order'}
+                    {createOrder.isPending ? 'Placing order...' : 'Place Order'}
                   </Button>
                 </div>
               </motion.div>
@@ -298,7 +314,6 @@ export default function CheckoutPage() {
           </AnimatePresence>
         </div>
 
-        {/* Order summary */}
         <div>
           <Card className="sticky top-24">
             <CardHeader>

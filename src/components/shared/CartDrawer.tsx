@@ -3,23 +3,29 @@ import { motion } from 'motion/react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useAppSelector } from '@/app/hooks';
-import { useAppDispatch } from '@/app/hooks';
-import { removeItem, updateQuantity } from '@/features/cart/cartSlice';
+import { useCartStore } from '@/store/cartStore';
+import { useProducts } from '@/hooks/useProducts';
 import { formatCurrency } from '@/lib/utils';
 import { X, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 
 export default function CartDrawer() {
-  const items = useAppSelector((s) => s.cart.items);
-  const products = useAppSelector((s) => s.products.items);
-  const dispatch = useAppDispatch();
+  const items = useCartStore((s) => s.items);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const { data: productsData } = useProducts({ limit: 100 });
 
-  const subtotal = items.reduce((sum, item) => {
-    const product = products.find((p) => p.id === item.productId);
-    if (!product) return sum;
-    const price = product.salePrice ?? product.price;
-    return sum + price * item.quantity;
-  }, 0);
+  const products = productsData?.items ?? [];
+  const itemsWithProducts = items
+    .map((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return product ? { ...item, product } : null;
+    })
+    .filter((line): line is typeof items[number] & { product: typeof products[number] } => line !== null);
+
+  const subtotal = itemsWithProducts.reduce(
+    (sum, item) => sum + (item.product.salePrice ?? item.product.price) * item.quantity,
+    0
+  );
 
   return (
     <Sheet>
@@ -51,10 +57,8 @@ export default function CartDrawer() {
         ) : (
           <>
             <div className="flex-1 overflow-auto py-6 space-y-4">
-              {items.map((item) => {
-                const product = products.find((p) => p.id === item.productId);
-                if (!product) return null;
-                const price = product.salePrice ?? product.price;
+              {itemsWithProducts.map((item) => {
+                const price = item.product.salePrice ?? item.product.price;
 
                 return (
                   <motion.div
@@ -65,10 +69,10 @@ export default function CartDrawer() {
                     exit={{ opacity: 0, x: -20 }}
                     className="flex gap-4"
                   >
-                    <Link to={`/products/${product.id}`}>
+                    <Link to={`/products/${item.productId}`}>
                       <img
-                        src={product.images[0]}
-                        alt={product.name}
+                        src={item.product.images[0]}
+                        alt={item.product.name}
                         className="w-20 h-20 rounded-xl object-cover bg-muted"
                       />
                     </Link>
@@ -76,10 +80,10 @@ export default function CartDrawer() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <Link
-                            to={`/products/${product.id}`}
+                            to={`/products/${item.productId}`}
                             className="font-medium text-sm leading-snug line-clamp-2 hover:text-primary transition-colors"
                           >
-                            {product.name}
+                            {item.product.name}
                           </Link>
                           {item.variant && (
                             <p className="text-xs text-muted-foreground mt-0.5">
@@ -88,9 +92,7 @@ export default function CartDrawer() {
                           )}
                         </div>
                         <button
-                          onClick={() =>
-                            dispatch(removeItem({ productId: item.productId, variant: item.variant }))
-                          }
+                          onClick={() => removeItem(item.productId, item.variant)}
                           className="text-muted-foreground hover:text-destructive transition-colors p-1"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -101,13 +103,7 @@ export default function CartDrawer() {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() =>
-                              dispatch(
-                                updateQuantity({
-                                  productId: item.productId,
-                                  quantity: item.quantity - 1,
-                                  variant: item.variant,
-                                })
-                              )
+                              updateQuantity(item.productId, item.quantity - 1, item.variant)
                             }
                             className="w-7 h-7 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors"
                           >
@@ -118,13 +114,7 @@ export default function CartDrawer() {
                           </span>
                           <button
                             onClick={() =>
-                              dispatch(
-                                updateQuantity({
-                                  productId: item.productId,
-                                  quantity: item.quantity + 1,
-                                  variant: item.variant,
-                                })
-                              )
+                              updateQuantity(item.productId, item.quantity + 1, item.variant)
                             }
                             className="w-7 h-7 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors"
                           >

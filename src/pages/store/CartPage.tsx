@@ -1,34 +1,34 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Minus, Plus, X, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import EmptyState from '@/components/shared/EmptyState';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { removeItem, updateQuantity, clearCart } from '@/features/cart/cartSlice';
+import { useCartStore } from '@/store/cartStore';
+import { useProducts } from '@/hooks/useProducts';
 import { formatCurrency } from '@/lib/utils';
 import { TAX_RATE } from '@/lib/constants';
 
 export default function CartPage() {
-  const { items } = useAppSelector((s) => s.cart);
-  const products = useAppSelector((s) => s.products.items);
-  const dispatch = useAppDispatch();
+  const items = useCartStore((s) => s.items);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const { data: productsData } = useProducts({ limit: 100 });
 
-  type CartLine = {
-    productId: string;
-    quantity: number;
-    variant?: { type: string; value: string };
-    product: (typeof products)[number];
-  };
+  const products = productsData?.items ?? [];
 
-  const cartProducts = items
-    .map((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      return product ? ({ ...item, product } as CartLine) : null;
-    })
-    .filter((line): line is CartLine => line !== null);
+  const cartLines = useMemo(() => {
+    return items
+      .map((item) => {
+        const product = products.find((p) => p.id === item.productId);
+        return product ? { ...item, product } : null;
+      })
+      .filter((line): line is typeof items[number] & { product: typeof products[number] } => line !== null);
+  }, [items, products]);
 
-  const subtotal = cartProducts.reduce(
+  const subtotal = cartLines.reduce(
     (sum, item) => sum + (item.product.salePrice ?? item.product.price) * item.quantity,
     0
   );
@@ -39,7 +39,7 @@ export default function CartPage() {
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-12">
       <h1 className="text-3xl font-bold tracking-tight mb-8">Shopping Cart</h1>
 
-      {cartProducts.length === 0 ? (
+      {cartLines.length === 0 ? (
         <EmptyState
           icon={<ShoppingBag className="w-8 h-8" strokeWidth={1.5} />}
           title="Your cart is empty"
@@ -48,16 +48,15 @@ export default function CartPage() {
         />
       ) : (
         <div className="grid lg:grid-cols-3 gap-12">
-          {/* Items */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">{cartProducts.length} item{cartProducts.length !== 1 ? 's' : ''}</p>
-              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => dispatch(clearCart())}>
+              <p className="text-sm text-muted-foreground">{cartLines.length} item{cartLines.length !== 1 ? 's' : ''}</p>
+              <Button variant="ghost" size="sm" className="text-destructive" onClick={clearCart}>
                 Clear cart
               </Button>
             </div>
 
-            {cartProducts.map((item) => (
+            {cartLines.map((item) => (
               <motion.div
                 key={`${item.productId}-${item.variant?.value}`}
                 layout
@@ -89,7 +88,7 @@ export default function CartPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => dispatch(removeItem({ productId: item.productId, variant: item.variant }))}
+                      onClick={() => removeItem(item.productId, item.variant)}
                       className="text-muted-foreground hover:text-destructive transition-colors p-1"
                     >
                       <X className="w-4 h-4" />
@@ -99,18 +98,14 @@ export default function CartPage() {
                   <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center border rounded-xl">
                       <button
-                        onClick={() =>
-                          dispatch(updateQuantity({ productId: item.productId, quantity: item.quantity - 1, variant: item.variant }))
-                        }
+                        onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variant)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="w-10 text-center text-sm font-mono font-medium">{item.quantity}</span>
                       <button
-                        onClick={() =>
-                          dispatch(updateQuantity({ productId: item.productId, quantity: item.quantity + 1, variant: item.variant }))
-                        }
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variant)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors"
                       >
                         <Plus className="w-3 h-3" />
@@ -125,7 +120,6 @@ export default function CartPage() {
             ))}
           </div>
 
-          {/* Summary */}
           <div>
             <div className="rounded-2xl border bg-card p-6 sticky top-24">
               <h2 className="font-semibold text-lg mb-4">Order Summary</h2>

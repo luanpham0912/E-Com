@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'motion/react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,7 @@ interface KPICardProps {
   className?: string;
 }
 
-export default function KPICard({ title, value, change, changeLabel, icon, className }: KPICardProps) {
+function KPICard({ title, value, change, changeLabel, icon, className }: KPICardProps) {
   const isPositive = change !== undefined && change >= 0;
 
   return (
@@ -50,3 +51,5 @@ export default function KPICard({ title, value, change, changeLabel, icon, class
     </motion.div>
   );
 }
+
+export default memo(KPICard);

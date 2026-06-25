@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import ProductCard from '@/components/shared/ProductCard';
 import { ProductCardSkeleton } from '@/components/ui/skeleton';
 import EmptyState from '@/components/shared/EmptyState';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { setFilters } from '@/features/products/productsSlice';
+import { useProducts } from '@/hooks/useProducts';
 import { cn } from '@/lib/utils';
 import { ShoppingBag } from 'lucide-react';
+import type { ProductFilters } from '@/lib/types';
 
 const PRICE_RANGES = [
   { label: 'All prices', min: 0, max: 10000 },
@@ -22,47 +22,22 @@ const PRICE_RANGES = [
   { label: 'Over $300', min: 300, max: 10000 },
 ];
 
-export default function ShopPage() {
-  const [searchParams] = useSearchParams();
-  const dispatch = useAppDispatch();
-  const { items: allProducts, filters, loading } = useAppSelector((s) => s.products);
-  const [searchValue, setSearchValue] = useState(filters.search);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+const DEFAULT_FILTERS: ProductFilters = {
+  category: '',
+  minPrice: 0,
+  maxPrice: 10000,
+  sortBy: 'newest',
+  search: '',
+};
 
-  useEffect(() => {
-    document.title = 'Shop — Store';
-    const cat = searchParams.get('category');
-    if (cat) dispatch(setFilters({ category: cat }));
-  }, []);
-
-  const filteredProducts = useMemo(() => {
-    return allProducts.filter((p) => {
-      if (filters.category && p.category !== filters.category) return false;
-      const price = p.salePrice ?? p.price;
-      if (price < filters.minPrice || price > filters.maxPrice) return false;
-      if (filters.search && !p.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-      return true;
-    }).sort((a, b) => {
-      switch (filters.sortBy) {
-        case 'price-asc': return (a.salePrice ?? a.price) - (b.salePrice ?? b.price);
-        case 'price-desc': return (b.salePrice ?? b.price) - (a.salePrice ?? a.price);
-        case 'rating': return b.rating - a.rating;
-        default: return 0;
-      }
-    });
-  }, [allProducts, filters]);
-
-  const handleSearch = () => {
-    dispatch(setFilters({ search: searchValue }));
-  };
-
-  const activeFilterCount = [
-    filters.category,
-    filters.minPrice > 0 || filters.maxPrice < 10000 ? 'price' : '',
-    filters.search,
-  ].filter(Boolean).length;
-
-  const FilterContent = () => (
+function FilterContent({
+  filters,
+  onFilterChange,
+}: {
+  filters: ProductFilters;
+  onFilterChange: (partial: Partial<ProductFilters>) => void;
+}) {
+  return (
     <div className="space-y-6">
       <div>
         <p className="text-sm font-semibold mb-3">Category</p>
@@ -70,7 +45,7 @@ export default function ShopPage() {
           {['All', 'Electronics', 'Fashion', 'Home & Living', 'Beauty', 'Sports', 'Books'].map((cat) => (
             <button
               key={cat}
-              onClick={() => dispatch(setFilters({ category: cat === 'All' ? '' : cat }))}
+              onClick={() => onFilterChange({ category: cat === 'All' ? '' : cat })}
               className={cn(
                 'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors',
                 (cat === 'All' ? !filters.category : filters.category === cat)
@@ -92,7 +67,7 @@ export default function ShopPage() {
           {PRICE_RANGES.map((range) => (
             <button
               key={range.label}
-              onClick={() => dispatch(setFilters({ minPrice: range.min, maxPrice: range.max }))}
+              onClick={() => onFilterChange({ minPrice: range.min, maxPrice: range.max })}
               className={cn(
                 'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors',
                 filters.minPrice === range.min && filters.maxPrice === range.max
@@ -107,10 +82,65 @@ export default function ShopPage() {
       </div>
     </div>
   );
+}
+
+export default function ShopPage() {
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<ProductFilters>(DEFAULT_FILTERS);
+  const [searchValue, setSearchValue] = useState('');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const { data, isLoading } = useProducts({
+    ...filters,
+    page: 1,
+    limit: 100,
+  });
+
+  useEffect(() => {
+    document.title = 'Shop — Store';
+    const cat = searchParams.get('category');
+    if (cat) setFilters((f) => ({ ...f, category: cat }));
+  }, []);
+
+  const handleFilterChange = useCallback((partial: Partial<ProductFilters>) => {
+    setFilters((f) => ({ ...f, ...partial }));
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    setFilters((f) => ({ ...f, search: searchValue }));
+  }, [searchValue]);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setSearchValue('');
+  }, []);
+
+  const filteredProducts = useMemo(() => {
+    const items = data?.items ?? [];
+    return items.filter((p) => {
+      if (filters.category && p.category !== filters.category) return false;
+      const price = p.salePrice ?? p.price;
+      if (price < filters.minPrice || price > filters.maxPrice) return false;
+      if (filters.search && !p.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
+      return true;
+    }).sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'price-asc': return (a.salePrice ?? a.price) - (b.salePrice ?? b.price);
+        case 'price-desc': return (b.salePrice ?? b.price) - (a.salePrice ?? a.price);
+        case 'rating': return b.rating - a.rating;
+        default: return 0;
+      }
+    });
+  }, [data?.items, filters]);
+
+  const activeFilterCount = [
+    filters.category,
+    filters.minPrice > 0 || filters.maxPrice < 10000 ? 'price' : '',
+    filters.search,
+  ].filter(Boolean).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-12">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Shop</h1>
@@ -138,7 +168,7 @@ export default function ShopPage() {
 
           <Select
             value={filters.sortBy}
-            onValueChange={(v) => dispatch(setFilters({ sortBy: v as typeof filters.sortBy }))}
+            onValueChange={(v) => handleFilterChange({ sortBy: v as typeof filters.sortBy })}
           >
             <SelectTrigger className="w-44">
               <SelectValue />
@@ -151,7 +181,6 @@ export default function ShopPage() {
             </SelectContent>
           </Select>
 
-          {/* Mobile filter */}
           <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="relative md:hidden">
@@ -168,7 +197,7 @@ export default function ShopPage() {
                 <SheetTitle>Filters</SheetTitle>
               </SheetHeader>
               <div className="mt-6">
-                <FilterContent />
+                <FilterContent filters={filters} onFilterChange={handleFilterChange} />
               </div>
             </SheetContent>
           </Sheet>
@@ -176,16 +205,14 @@ export default function ShopPage() {
       </div>
 
       <div className="flex gap-8">
-        {/* Desktop Sidebar */}
         <aside className="hidden md:block w-56 shrink-0">
           <div className="sticky top-24">
-            <FilterContent />
+            <FilterContent filters={filters} onFilterChange={handleFilterChange} />
           </div>
         </aside>
 
-        {/* Products Grid */}
         <div className="flex-1">
-          {loading ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length: 9 }).map((_, i) => (
                 <ProductCardSkeleton key={i} />
@@ -196,7 +223,7 @@ export default function ShopPage() {
               icon={<ShoppingBag className="w-8 h-8" strokeWidth={1.5} />}
               title="No products found"
               description="Try adjusting your filters or search query."
-              action={{ label: 'Clear filters', onClick: () => dispatch(setFilters({ category: '', search: '', minPrice: 0, maxPrice: 10000 })) }}
+              action={{ label: 'Clear filters', onClick: handleClearFilters }}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

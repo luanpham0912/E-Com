@@ -5,7 +5,8 @@ import { ArrowRight, Star, Truck, ShieldCheck, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import ProductCard from '@/components/shared/ProductCard';
-import { useAppSelector } from '@/app/hooks';
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { formatCurrency } from '@/lib/utils';
 
 const PROMISES = [
@@ -31,14 +32,15 @@ export default function HomePage() {
     document.title = 'Store — Curated Goods for Thoughtful Living';
   }, []);
 
-  const products = useAppSelector((s) => s.products.items);
-  const categories = useAppSelector((s) => s.categories.items);
+  const { data: productsData } = useProducts({ limit: 8 });
+  const { data: categories } = useCategories();
+  console.log("categories",categories);
+  const products = productsData?.items ?? [];
   const featuredProducts = products.slice(0, 8);
   const bestSeller = products[0];
 
   return (
     <div>
-      {/* Hero */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-24 grid lg:grid-cols-2 gap-16 items-center w-full">
           <div className="space-y-6">
@@ -117,7 +119,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Promises */}
       <section className="border-y bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -143,7 +144,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products */}
       <section className="py-24 max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex items-end justify-between mb-12">
           <div>
@@ -170,14 +170,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
       <section className="py-24 bg-muted/20">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-12">
             Browse by category
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((cat, i) => (
+            {categories?.map((cat, i) => (
               <motion.div
                 key={cat.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -209,7 +208,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Best seller highlight */}
       <section className="py-24 max-w-7xl mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="order-2 md:order-1">
@@ -258,7 +256,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-24 bg-primary text-primary-foreground">
         <div className="max-w-3xl mx-auto px-4 md:px-6 text-center space-y-6">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">

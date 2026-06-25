@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import type { OrderStatus } from '@/lib/types';
 
@@ -13,7 +14,9 @@ interface StatusBadgeProps {
   status: OrderStatus;
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+function StatusBadge({ status }: StatusBadgeProps) {
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
+
+export default memo(StatusBadge);

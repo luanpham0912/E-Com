@@ -3,29 +3,15 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { CheckCircle2, Package, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchOrders } from '@/features/orders/ordersSlice';
-import { ordersApi } from '@/features/orders/ordersApi';
+import { useOrder } from '@/hooks/useOrders';
 
 export default function OrderConfirmationPage() {
   const { id } = useParams<{ id: string }>();
-  const dispatch = useAppDispatch();
-  const orders = useAppSelector((s) => s.orders.orders);
-  const products = useAppSelector((s) => s.products.items);
-  const order = orders.find((o) => o.id === id) ?? (id && id !== 'new' ? null : undefined);
+  const { data: order, isLoading } = useOrder(id ?? '');
 
   useEffect(() => {
     document.title = 'Order Confirmed — Store';
-    if (id && id !== 'new') {
-      // Try to load full order details from the API if not already in store
-      if (!orders.some((o) => o.id === id)) {
-        ordersApi
-          .get(id)
-          .then(() => dispatch(fetchOrders()))
-          .catch(() => undefined);
-      }
-    }
-  }, [id]);
+  }, []);
 
   if (id === 'new' || !id) {
     return (
@@ -38,7 +24,7 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  if (!order) {
+  if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto px-4 md:px-6 py-24 text-center">
         <p className="text-muted-foreground">Loading order...</p>
@@ -46,9 +32,16 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  const itemProducts = order.items
-    .map((i) => ({ item: i, product: products.find((p) => p.id === i.productId) }))
-    .filter((x): x is { item: typeof x.item; product: NonNullable<typeof x.product> } => !!x.product);
+  if (!order) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-24 text-center">
+        <p className="text-muted-foreground">Order not found.</p>
+        <Link to="/shop" className="text-primary hover:underline mt-2 block">
+          Continue shopping
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-6 py-24">
@@ -74,11 +67,15 @@ export default function OrderConfirmationPage() {
           </div>
           <p className="text-2xl font-bold font-mono">{order.id}</p>
           <div className="space-y-2 pt-2 border-t">
-            {itemProducts.map(({ item, product }) => (
+            {order.items.map((item) => (
               <div key={`${item.productId}-${item.variant?.value}`} className="flex items-center gap-3">
-                <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-muted" />
+                <img
+                  src={`https://picsum.photos/seed/${item.productId}/100/100`}
+                  alt=""
+                  className="w-10 h-10 rounded-lg object-cover bg-muted"
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium line-clamp-1">{product.name}</p>
+                  <p className="text-sm font-medium line-clamp-1">{item.productId}</p>
                   <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                 </div>
               </div>
@@ -102,4 +99,3 @@ export default function OrderConfirmationPage() {
     </div>
   );
 }
-

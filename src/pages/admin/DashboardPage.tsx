@@ -1,41 +1,42 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { DollarSign, ShoppingBag, Users, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import KPICard from '@/components/admin/KPICard';
 import StatusBadge from '@/components/admin/StatusBadge';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchOrders } from '@/features/orders/ordersSlice';
-import { fetchUsers } from '@/features/users/usersSlice';
+import { useOrders } from '@/hooks/useOrders';
+import { useUsers } from '@/hooks/useUsers';
+import { useProducts } from '@/hooks/useProducts';
 import { formatCurrency } from '@/lib/utils';
 
-const REVENUE_DATA = Array.from({ length: 30 }, (_, i) => {
-  const date = new Date();
-  date.setDate(date.getDate() - (29 - i));
-  const base = 800 + Math.random() * 600;
-  return {
-    day: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    revenue: Math.round(base),
-  };
-});
+
 
 export default function DashboardPage() {
-  const dispatch = useAppDispatch();
-  const orders = useAppSelector((s) => s.orders.orders);
-  const products = useAppSelector((s) => s.products.items);
-  const users = useAppSelector((s) => s.users.items);
 
-  useEffect(() => {
-    document.title = 'Dashboard — Admin';
-    dispatch(fetchOrders());
-    dispatch(fetchUsers());
-  }, []);
+  const { data: orders = [] } = useOrders();
+  const { data: users = [] } = useUsers();
+  const { data: productsData } = useProducts({ limit: 100 });
+  const products = productsData?.items ?? [];
 
   const totalRevenue = orders
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + o.total, 0);
   const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+  useEffect(() => {
+    document.title = 'Dashboard — Admin';
+  }, []);
+
+  const REVENUE_DATA = useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      const base = 800 + Math.random() * 600;
+      return {
+        day: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        revenue: Math.round(base),
+      };
+    }), []);
 
   return (
     <div className="space-y-8">
@@ -44,7 +45,6 @@ export default function DashboardPage() {
         <p className="text-muted-foreground text-sm mt-1">Overview of your store performance.</p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Total Revenue"
@@ -77,7 +77,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Revenue Chart */}
         <Card>
           <CardHeader>
             <CardTitle>Revenue (Last 30 days)</CardTitle>
@@ -105,7 +104,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recent Orders */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
@@ -125,7 +123,7 @@ export default function DashboardPage() {
                   const customer = users.find((u) => u.id === order.userId);
                   return (
                     <TableRow key={order.id}>
-                      <TableCell className="font-mono font-medium text-xs">{order.id}</TableCell>
+                      <TableCell className="font-mono font-medium text-xs">{order.id.slice(-6).toUpperCase()}</TableCell>
                       <TableCell className="text-sm">{customer?.name ?? 'Guest'}</TableCell>
                       <TableCell><StatusBadge status={order.status} /></TableCell>
                       <TableCell className="text-right font-mono font-medium">{formatCurrency(order.total)}</TableCell>
@@ -138,7 +136,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Top Products */}
       <Card>
         <CardHeader>
           <CardTitle>Top Products</CardTitle>

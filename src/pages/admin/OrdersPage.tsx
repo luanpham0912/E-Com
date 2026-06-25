@@ -22,27 +22,27 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import StatusBadge from '@/components/admin/StatusBadge';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { fetchOrders, updateOrderStatusAsync } from '@/features/orders/ordersSlice';
-import { fetchUsers } from '@/features/users/usersSlice';
+import { useOrders, useUpdateOrderStatus } from '@/hooks/useOrders';
+import { useUsers } from '@/hooks/useUsers';
+import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import type { Order, OrderStatus } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function OrdersPage() {
-  const dispatch = useAppDispatch();
-  const orders = useAppSelector((s) => s.orders.orders);
-  const users = useAppSelector((s) => s.users.items);
-  const products = useAppSelector((s) => s.products.items);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     document.title = 'Orders — Admin';
-    dispatch(fetchOrders());
-    dispatch(fetchUsers());
   }, []);
+
+  const { data: orders = [] } = useOrders();
+  const { data: users = [] } = useUsers();
+  const { data: productsData } = useProducts({ limit: 100 });
+  const products = productsData?.items ?? [];
+  const updateStatus = useUpdateOrderStatus();
 
   const columns: ColumnDef<Order>[] = [
     {
@@ -62,11 +62,7 @@ export default function OrdersPage() {
         return <span className="text-sm">{user?.name ?? 'Guest'}</span>;
       },
     },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    },
+    { accessorKey: 'status', header: 'Status', cell: ({ row }) => <StatusBadge status={row.original.status} /> },
     {
       accessorKey: 'total',
       header: ({ column }) => (
@@ -83,9 +79,7 @@ export default function OrdersPage() {
           Date <ArrowUpDown className="w-3 h-3 ml-1" strokeWidth={1.5} />
         </Button>
       ),
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{formatDate(row.original.createdAt)}</span>
-      ),
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatDate(row.original.createdAt)}</span>,
     },
     {
       id: 'actions',
@@ -103,9 +97,7 @@ export default function OrdersPage() {
             value={row.original.status}
             onValueChange={async (v) => {
               try {
-                await dispatch(
-                  updateOrderStatusAsync({ orderId: row.original.id, status: v as OrderStatus })
-                ).unwrap();
+                await updateStatus.mutateAsync({ id: row.original.id, status: v as OrderStatus });
                 toast.success('Status updated');
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : 'Update failed');
@@ -205,7 +197,6 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Order Detail Modal */}
       <Dialog open={!!detailOrder} onOpenChange={() => setDetailOrder(null)}>
         <DialogContent className="max-w-lg">
           {detailOrder && (

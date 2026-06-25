@@ -9,18 +9,17 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import StatusBadge from '@/components/admin/StatusBadge';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { updateProfile } from '@/features/auth/authSlice';
-import { fetchOrders } from '@/features/orders/ordersSlice';
+import { useAuthStore } from '@/store/authStore';
+import { useOrders } from '@/hooks/useOrders';
 import { profileSchema, type ProfileFormData } from '@/lib/schemas';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function AccountPage() {
-  const { user } = useAppSelector((s) => s.auth);
-  const allOrders = useAppSelector((s) => s.orders.orders);
-  const orders = allOrders.filter((o) => o.userId === user?.id);
-  const products = useAppSelector((s) => s.products.items);
-  const dispatch = useAppDispatch();
+  const { user, updateProfile } = useAuthStore();
+  const { data: orders = [] } = useOrders();
+
+  const userOrders = orders.filter((o) => o.userId === user?.id);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -33,11 +32,15 @@ export default function AccountPage() {
   useEffect(() => {
     document.title = 'Account — Store';
     profileForm.reset({ name: user?.name ?? '', email: user?.email ?? '' });
-    if (user) dispatch(fetchOrders());
-  }, [user]);
+  }, [user, profileForm]);
 
-  const handleProfileUpdate = profileForm.handleSubmit((data) => {
-    dispatch(updateProfile({ name: data.name, email: data.email }));
+  const handleProfileUpdate = profileForm.handleSubmit(async (data) => {
+    try {
+      await updateProfile({ name: data.name });
+      toast.success('Profile updated');
+    } catch {
+      toast.error('Failed to update profile');
+    }
   });
 
   return (
@@ -45,7 +48,6 @@ export default function AccountPage() {
       <h1 className="text-3xl font-bold tracking-tight mb-8">Account</h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Profile */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
@@ -73,20 +75,19 @@ export default function AccountPage() {
           </Card>
         </div>
 
-        {/* Orders */}
         <div className="lg:col-span-2">
           <div className="flex items-center gap-3 mb-6">
             <h2 className="text-xl font-semibold">Order History</h2>
           </div>
 
-          {orders.length === 0 ? (
+          {userOrders.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Package className="w-10 h-10 mx-auto mb-3 opacity-30" strokeWidth={1.5} />
               <p>No orders yet.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => (
+              {userOrders.map((order) => (
                 <motion.div
                   key={order.id}
                   initial={{ opacity: 0, y: 12 }}
@@ -102,18 +103,18 @@ export default function AccountPage() {
                   </div>
                   <Separator />
                   <div className="flex gap-3">
-                    {order.items.slice(0, 4).map((item, i) => {
-                      const product = products.find((p) => p.id === item.productId);
-                      if (!product) return null;
-                      return (
+                    {order.items.slice(0, 4).map((item, i) => (
+                      <div
+                        key={i}
+                        className="w-12 h-12 rounded-lg bg-muted overflow-hidden"
+                      >
                         <img
-                          key={i}
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="w-12 h-12 rounded-lg object-cover bg-muted"
+                          src={`https://picsum.photos/seed/${item.productId}/100/100`}
+                          alt=""
+                          className="w-full h-full object-cover"
                         />
-                      );
-                    })}
+                      </div>
+                    ))}
                     {order.items.length > 4 && (
                       <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
                         +{order.items.length - 4}

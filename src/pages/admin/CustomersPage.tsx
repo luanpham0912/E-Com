@@ -16,24 +16,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchUsers } from '@/features/users/usersSlice';
-import { fetchOrders } from '@/features/orders/ordersSlice';
+import { useUsers } from '@/hooks/useUsers';
+import { useOrders } from '@/hooks/useOrders';
 import type { User } from '@/lib/types';
 import { formatCurrency, formatDate, getInitials } from '@/lib/utils';
 
 export default function CustomersPage() {
-  const dispatch = useAppDispatch();
-  const allUsers = useAppSelector((s) => s.users.items);
-  const orders = useAppSelector((s) => s.orders.orders);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
   useEffect(() => {
     document.title = 'Customers — Admin';
-    dispatch(fetchUsers());
-    dispatch(fetchOrders());
   }, []);
+
+  const { data: allUsers = [] } = useUsers();
+  const { data: orders = [] } = useOrders();
 
   const customers = allUsers.filter((u) => u.role === 'customer');
 

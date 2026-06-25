@@ -21,13 +21,19 @@ export function signToken(payload: AuthPayload): string {
   return jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn } as jwt.SignOptions);
 }
 
-export function authRequired(req: Request, res: Response, next: NextFunction): void {
+function extractToken(req: Request): string | null {
+  if (req.cookies?.access_token) return req.cookies.access_token;
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    res.status(401).json({ error: { message: 'Missing or invalid authorization header' } });
+  if (header?.startsWith('Bearer ')) return header.slice(7);
+  return null;
+}
+
+export function authRequired(req: Request, res: Response, next: NextFunction): void {
+  const token = extractToken(req);
+  if (!token) {
+    res.status(401).json({ error: { message: 'Authentication required' } });
     return;
   }
-  const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload;
     req.user = decoded;

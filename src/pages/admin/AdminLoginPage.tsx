@@ -8,14 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { loginSchema, type LoginFormData } from '@/lib/schemas';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { loginAsync } from '@/features/auth/authSlice';
-import { fetchOrders } from '@/features/orders/ordersSlice';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector((s) => s.auth);
+  const login = useAuthStore((s) => s.login);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const error = useAuthStore((s) => s.error);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -23,14 +22,18 @@ export default function AdminLoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    const result = await dispatch(loginAsync(data));
-    if (loginAsync.fulfilled.match(result) && result.payload.user.role === 'admin') {
-      dispatch(fetchOrders());
-      navigate('/admin');
-    } else if (loginAsync.fulfilled.match(result)) {
-      form.setError('root', { message: 'This account does not have admin access.' });
-    } else {
-      form.setError('root', { message: result.payload ?? 'Invalid admin credentials.' });
+    try {
+      await login(data.email, data.password);
+      const role = useAuthStore.getState().role;
+      if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        form.setError('root', { message: 'This account does not have admin access.' });
+      }
+    } catch {
+      form.setError('root', {
+        message: error ?? 'Invalid credentials',
+      });
     }
   };
 
@@ -77,14 +80,10 @@ export default function AdminLoginPage() {
                   {error}
                 </p>
               )}
-              <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign in as Admin'}
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? 'Signing in...' : 'Sign in as Admin'}
               </Button>
             </form>
-            <div className="mt-6 p-4 rounded-xl bg-muted/50">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Demo</p>
-              <p className="text-xs font-mono">admin@store.com / admin123</p>
-            </div>
           </CardContent>
         </Card>
       </motion.div>

@@ -22,9 +22,12 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { addProduct, updateProduct, deleteProduct, fetchProducts } from '@/features/products/productsSlice';
-import { productsApi } from '@/features/products/productsApi';
+import {
+  useProducts,
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+} from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import type { Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
@@ -41,8 +44,6 @@ const EmptyForm = {
 };
 
 export default function ProductsPage() {
-  const dispatch = useAppDispatch();
-  const products = useAppSelector((s) => s.products.items);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,8 +53,13 @@ export default function ProductsPage() {
 
   useEffect(() => {
     document.title = 'Products — Admin';
-    dispatch(fetchProducts({ limit: 100 }));
   }, []);
+
+  const { data: productsData } = useProducts({ limit: 100 });
+  const products = productsData?.items ?? [];
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
 
   const columns: ColumnDef<Product>[] = [
     {
@@ -145,8 +151,7 @@ export default function ProductsPage() {
             onClick={async () => {
               if (!confirm('Delete this product?')) return;
               try {
-                await productsApi.remove(row.original.id);
-                dispatch(deleteProduct(row.original.id));
+                await deleteProduct.mutateAsync(row.original.id);
                 toast.success('Product deleted');
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : 'Delete failed');
@@ -191,12 +196,10 @@ export default function ProductsPage() {
         reviewCount: editingProduct?.reviewCount ?? 0,
       };
       if (editingProduct) {
-        const updated = await productsApi.update(editingProduct.id, baseFields);
-        dispatch(updateProduct(updated));
+        await updateProduct.mutateAsync({ id: editingProduct.id, ...baseFields });
         toast.success('Product updated');
       } else {
-        const created = await productsApi.create(baseFields);
-        dispatch(addProduct(created));
+        await createProduct.mutateAsync(baseFields as Omit<Product, 'id'>);
         toast.success('Product created');
       }
       setModalOpen(false);
@@ -271,7 +274,6 @@ export default function ProductsPage() {
         </Table>
       </div>
 
-      {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
@@ -286,7 +288,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { setModalOpen(false); setEditingProduct(null); setForm(EmptyForm); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

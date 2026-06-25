@@ -1,0 +1,59 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── Frontend: build only, Vercel handles deployment via webhook ──────────────
+  deploy-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Build
+        run: npm ci && npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./
+
+  # ── Backend: build + deploy to Render ──────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trigger Render Deploy
+        uses: wei/curl@master
+        with:
+          request: POST
+          url: https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys
+          data: >
+            {
+              "triggerPreset": "github_push",
+              "clearCache": false
+            }
+          headers: >
+            Content-Type: application/json
+            Authorization: Bearer ${{ secrets.RENDER_API_KEY }}
+          capture: >-
+            {
+              "id": .id,
+              "status": .status
+            }

@@ -10,17 +10,18 @@ import { Label } from '@/components/ui/label';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchCategories, addCategory, updateCategory, removeCategory } from '@/features/categories/categoriesSlice';
-import { categoriesApi } from '@/features/categories/categoriesApi';
+import {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from '@/hooks/useCategories';
 import { toast } from 'sonner';
 import type { Category } from '@/lib/types';
 
 const EmptyForm = { name: '', image: '' };
 
 export default function CategoriesPage() {
-  const dispatch = useAppDispatch();
-  const categories = useAppSelector((s) => s.categories.items);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState(EmptyForm);
@@ -28,8 +29,12 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     document.title = 'Categories — Admin';
-    dispatch(fetchCategories());
   }, []);
+
+  const { data: categories = [] } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
 
   const handleSave = async () => {
     if (!form.name) return;
@@ -39,15 +44,12 @@ export default function CategoriesPage() {
         name: form.name,
         slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         image: form.image || `https://picsum.photos/seed/${form.name}/600/400`,
-        productCount: editing?.productCount ?? 0,
       };
       if (editing) {
-        const updated = await categoriesApi.update(editing.id, payload);
-        dispatch(updateCategory(updated));
+        await updateCategory.mutateAsync({ id: editing.id, ...payload });
         toast.success('Category updated');
       } else {
-        const created = await categoriesApi.create(payload);
-        dispatch(addCategory(created));
+        await createCategory.mutateAsync(payload);
         toast.success('Category created');
       }
       setModalOpen(false);
@@ -63,8 +65,7 @@ export default function CategoriesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this category?')) return;
     try {
-      await categoriesApi.remove(id);
-      dispatch(removeCategory(id));
+      await deleteCategory.mutateAsync(id);
       toast.success('Category deleted');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Delete failed');

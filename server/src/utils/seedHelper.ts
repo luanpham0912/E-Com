@@ -8,6 +8,13 @@ import { Review } from '../models/Review.js';
 import { Order } from '../models/Order.js';
 import { products, categories, orders, reviews, users } from './seedData.js';
 
+type SeedUser = typeof users[number];
+type SeedProduct = typeof products[number];
+type SeedCategory = typeof categories[number];
+type SeedReview = typeof reviews[number];
+type SeedOrder = typeof orders[number];
+type SeedOrderItem = SeedOrder['items'][number];
+
 export async function seed() {
   await Promise.all([
     User.deleteMany({}),
