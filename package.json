@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm install --include=dev && npm --prefix server install --include=dev && tsc -b && vite build",
+    "build": "npm install --include=dev && npm --prefix server install --include=dev && npm --prefix server run build && tsc --noEmit && vite build --outDir server/dist --emptyOutDir",
     "lint": "eslint .",
     "preview": "vite preview",
     "shadcn": "npx shadcn@latest",
