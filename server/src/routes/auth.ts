@@ -50,7 +50,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
     name,
     email: email.toLowerCase(),
     passwordHash,
-    avatar: `https://fastly.picsum.photos/seed/${email}/200/200`,
+    avatar: `https://picsum.photos/seed/${email}/200/200`,
     role: 'customer',
   });
 
