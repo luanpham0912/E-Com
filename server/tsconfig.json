@@ -4,17 +4,14 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "noUncheckedIndexedAccess": false,
-    "baseUrl": "..",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "noUncheckedIndexedAccess": false
   },
   "include": ["src/**/*"]
 }
