@@ -30,7 +30,7 @@ const updateProfileSchema = z.object({
 function setAuthCookies(res: Response, token: string) {
   const isProd = config.nodeEnv === 'production';
   res.cookie('access_token', token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: isProd,
     sameSite: 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000,
