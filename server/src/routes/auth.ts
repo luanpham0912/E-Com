@@ -32,7 +32,7 @@ function setAuthCookies(res: Response, token: string) {
   res.cookie('access_token', token, {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax',
+    sameSite: 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
   });
@@ -47,8 +47,8 @@ function setAuthCookies(res: Response, token: string) {
 }
 
 function clearAuthCookies(res: Response) {
-  res.clearCookie('access_token', { path: '/' });
-  res.clearCookie('csrf_token', { path: '/' });
+  res.clearCookie('access_token', { path: '/', sameSite: 'none' });
+  res.clearCookie('csrf_token', { path: '/', sameSite: 'none' });
 }
 
 router.post('/register', validate(registerSchema), async (req: Request, res: Response) => {
@@ -68,7 +68,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
   setAuthCookies(res, token);
-  res.status(201).json({ data: { user: serializeUser(user) } });
+  res.status(201).json({ data: { user: serializeUser(user), token } });
 });
 
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
@@ -82,7 +82,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
   setAuthCookies(res, token);
-  res.json({ data: { user: serializeUser(user) } });
+  res.json({ data: { user: serializeUser(user), token } });
 });
 
 router.get('/me', authRequired, async (req: Request, res: Response) => {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { authApi } from '@/apis/authApi';
 import type { User, UserRole } from '@/lib/types';
+import { setAuthToken, clearAuthToken, getAuthToken } from '@/lib/axios/requestInterceptor';
 
 interface AuthState {
   user: User | null;
@@ -25,18 +26,25 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     set({ isLoading: true, error: null });
-    try {
-      const user = await authApi.me();
-      set({ user, isAuthenticated: true, role: user.role, isLoading: false });
-    } catch {
-      set({ user: null, isAuthenticated: false, role: 'customer', isLoading: false });
+    const storedToken = getAuthToken();
+    if (storedToken) {
+      try {
+        const user = await authApi.me();
+        set({ user, isAuthenticated: true, role: user.role, isLoading: false });
+      } catch {
+        clearAuthToken();
+        set({ user: null, isAuthenticated: false, role: 'customer', isLoading: false });
+      }
+    } else {
+      set({ isLoading: false });
     }
   },
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const { user } = await authApi.login({ email, password });
+      const { user, token } = await authApi.login({ email, password });
+      if (token) setAuthToken(token);
       set({ user, isAuthenticated: true, role: user.role, isLoading: false, error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
@@ -48,7 +56,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (name, email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const { user } = await authApi.register({ name, email, password });
+      const { user, token } = await authApi.register({ name, email, password });
+      if (token) setAuthToken(token);
       set({ user, isAuthenticated: true, role: user.role, isLoading: false, error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed';
@@ -61,6 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await authApi.logout();
     } finally {
+      clearAuthToken();
       set({ user: null, isAuthenticated: false, role: 'customer', error: null });
     }
   },
