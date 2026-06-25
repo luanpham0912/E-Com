@@ -8,11 +8,11 @@
       "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
+        { "key": "Access-Control-Allow-Origin", "value": "https://petproject-api.onrender.com" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://petproject-api.onrender.com/api/:path*" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

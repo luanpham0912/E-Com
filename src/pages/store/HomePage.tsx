@@ -34,7 +34,6 @@ export default function HomePage() {
 
   const { data: productsData } = useProducts({ limit: 8 });
   const { data: categories } = useCategories();
-  console.log("categories",categories);
   const products = productsData?.items ?? [];
   const featuredProducts = products.slice(0, 8);
   const bestSeller = products[0];
