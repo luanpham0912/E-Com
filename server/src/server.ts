@@ -47,7 +47,7 @@ export function buildApp(): Express {
   app.use('/api/v1/orders', orderRoutes);
   app.use('/api/v1/users', userRoutes);
 
-  const distPath = path.resolve(process.cwd(), 'dist');
+  const distPath = path.resolve(process.cwd(), 'dist/public');
   app.use(express.static(distPath));
   app.get('*', (_req: Request, res: Response) => {
     res.sendFile(path.join(distPath, 'index.html'));

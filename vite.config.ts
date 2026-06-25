@@ -13,7 +13,8 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../server/dist/assets',
+    outDir: path.resolve(__dirname, 'server/dist/public'),
+    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: {
