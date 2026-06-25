@@ -13,5 +13,6 @@
     "allowSyntheticDefaultImports": true,
     "noUncheckedIndexedAccess": false
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/utils/smoke.ts", "src/utils/seed.ts"]
 }
