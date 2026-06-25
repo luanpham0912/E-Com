@@ -1,6 +1,5 @@
 import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import { z } from 'zod';
 import { User } from '../models/User.js';
 import { authRequired, signToken } from '../middleware/auth.js';
@@ -28,27 +27,16 @@ const updateProfileSchema = z.object({
 });
 
 function setAuthCookies(res: Response, token: string) {
-  const isProd = config.nodeEnv === 'production';
   res.cookie('access_token', token, {
-    httpOnly: false,
-    secure: isProd,
-    sameSite: 'none',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/',
-  });
-  const csrfToken = crypto.randomBytes(32).toString('hex');
-  res.cookie('csrf_token', csrfToken, {
-    httpOnly: false,
-    secure: isProd,
-    sameSite: 'none',
+    httpOnly: true,
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
   });
 }
 
 function clearAuthCookies(res: Response) {
-  res.clearCookie('access_token', { path: '/', sameSite: 'none' });
-  res.clearCookie('csrf_token', { path: '/', sameSite: 'none' });
+  res.clearCookie('access_token', { path: '/' });
 }
 
 router.post('/register', validate(registerSchema), async (req: Request, res: Response) => {

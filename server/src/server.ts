@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import { config } from './config/env.js';
 import authRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
@@ -45,6 +46,12 @@ export function buildApp(): Express {
   app.use('/api/v1/cart', cartRoutes);
   app.use('/api/v1/orders', orderRoutes);
   app.use('/api/v1/users', userRoutes);
+
+  const distPath = path.resolve(process.cwd(), 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (_req: Request, res: Response) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
 
   app.use(notFound);
   app.use(errorHandler);

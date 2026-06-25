@@ -1,12 +1,11 @@
 services:
   - type: web
-    name: petproject-api
+    name: petproject
     env: node
     region: singapore
     plan: free
-    rootDir: server
-    buildCommand: npm install --include=dev && npm run build
-    startCommand: npm start
+    buildCommand: npm install && npm run build && npm --prefix server run build
+    startCommand: npm --prefix server run start
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
