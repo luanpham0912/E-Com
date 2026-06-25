@@ -43,7 +43,7 @@ export default function CategoriesPage() {
       const payload = {
         name: form.name,
         slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        image: form.image || `https://picsum.photos/seed/${form.name}/600/400`,
+        image: form.image || `https://fastly.picsum.photos/seed/${form.name}/600/400`,
       };
       if (editing) {
         await updateCategory.mutateAsync({ id: editing.id, ...payload });

@@ -109,7 +109,7 @@ export default function AccountPage() {
                         className="w-12 h-12 rounded-lg bg-muted overflow-hidden"
                       >
                         <img
-                          src={`https://picsum.photos/seed/${item.productId}/100/100`}
+                          src={`https://fastly.picsum.photos/seed/${item.productId}/100/100`}
                           alt=""
                           className="w-full h-full object-cover"
                         />

@@ -191,7 +191,7 @@ export default function ProductsPage() {
         stock: parseInt(form.stock || '0', 10),
         tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
         variants: editingProduct?.variants ?? [],
-        images: editingProduct?.images ?? [`https://picsum.photos/seed/${form.name || 'new'}/800/800`],
+        images: editingProduct?.images ?? [`https://fastly.picsum.photos/seed/${form.name || 'new'}/800/800`],
         rating: editingProduct?.rating ?? 4.5,
         reviewCount: editingProduct?.reviewCount ?? 0,
       };
