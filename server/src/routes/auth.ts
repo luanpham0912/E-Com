@@ -68,7 +68,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
   setAuthCookies(res, token);
-  res.status(201).json({ data: { user: serializeUser(user), token } });
+  res.status(201).json({ data: { user: serializeUser(user) } });
 });
 
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
@@ -82,7 +82,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
   setAuthCookies(res, token);
-  res.json({ data: { user: serializeUser(user), token } });
+  res.json({ data: { user: serializeUser(user) } });
 });
 
 router.get('/me', authRequired, async (req: Request, res: Response) => {
