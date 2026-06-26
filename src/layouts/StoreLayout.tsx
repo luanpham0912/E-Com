@@ -12,13 +12,6 @@ export default function StoreLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = stored === 'dark' || (!stored && prefersDark);
-    document.documentElement.classList.toggle('dark', shouldBeDark);
-  }, []);
-
   return (
     <TooltipProvider>
       <div className="flex min-h-dvh flex-col">

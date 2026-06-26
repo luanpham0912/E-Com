@@ -7,6 +7,16 @@
     <title>E-Commerce Store</title>
   </head>
   <body>
+    <script>
+      try {
+        var stored = JSON.parse(localStorage.getItem('ui-preferences') || '{}');
+        var theme = stored?.state?.theme;
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

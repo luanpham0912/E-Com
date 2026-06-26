@@ -1,15 +1,10 @@
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Star, ShoppingCart, Minus, Plus, Check } from 'lucide-react';
+import { Star} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { Product, Variant } from '@/lib/types';
+import type { Product } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { useCartStore } from '@/store/cartStore';
-import { toast } from 'sonner';
-
 interface ProductCardProps {
   product: Product;
   index?: number;
@@ -17,24 +12,10 @@ interface ProductCardProps {
 }
 
 const ProductCard = memo(function ProductCard({ product, index = 0, className }: ProductCardProps) {
-  const addItem = useCartStore((s) => s.addItem);
   const isOnSale = !!product.salePrice;
   const discount = product.salePrice
     ? Math.round((1 - product.salePrice / product.price) * 100)
     : 0;
-
-  const hasVariants = product.variants.length > 0;
-  const variantTypes = Array.from(new Set(product.variants.map((v) => v.type)));
-  const variantGroups = variantTypes.map((type) => ({
-    type,
-    values: product.variants.filter((v) => v.type === type),
-  }));
-
-  const handleQuickAdd = (e: React.MouseEvent) => {
-    e.preventDefault();
-    addItem({ productId: product.id, quantity: 1 });
-    toast.success(`${product.name} added to cart`);
-  };
 
   return (
     <motion.div
@@ -109,27 +90,6 @@ const ProductCard = memo(function ProductCard({ product, index = 0, className }:
               )}
             </div>
 
-            {product.stock > 0 && (
-              hasVariants ? (
-                <VariantPopover
-                  product={product}
-                  variantGroups={variantGroups}
-                  onAdd={(variant, quantity) => {
-                    addItem({ productId: product.id, quantity, variant });
-                    toast.success(`${product.name} added to cart`);
-                  }}
-                />
-              ) : (
-                <Button
-                  size="sm"
-                  className="h-8 px-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={handleQuickAdd}
-                >
-                  <ShoppingCart className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
-                  Add
-                </Button>
-              )
-            )}
           </div>
         </div>
       </div>
@@ -137,135 +97,5 @@ const ProductCard = memo(function ProductCard({ product, index = 0, className }:
   );
 });
 
-function VariantPopover({
-  product,
-  variantGroups,
-  onAdd,
-}: {
-  product: Product;
-  variantGroups: { type: string; values: Variant[] }[];
-  onAdd: (variant: { type: string; value: string } | undefined, quantity: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Record<string, string>>({});
-  const [quantity, setQuantity] = useState(1);
-
-  const allSelected = variantGroups.every((g) => selected[g.type]);
-  const primaryType = variantGroups[0]?.type ?? 'option';
-  const primaryValue = selected[primaryType];
-
-  const handleSelect = (type: string, value: string) => {
-    setSelected((prev) => ({ ...prev, [type]: value }));
-  };
-
-  const handleConfirm = () => {
-    if (!allSelected) return;
-    const variant =
-      variantGroups.length === 1
-        ? { type: primaryType, value: primaryValue }
-        : undefined;
-    onAdd(variant, quantity);
-    setOpen(false);
-    setSelected({});
-    setQuantity(1);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          size="sm"
-          className="h-8 px-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => e.preventDefault()}
-        >
-          <ShoppingCart className="w-3.5 h-3.5 mr-1" strokeWidth={1.5} />
-          Add
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72">
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-semibold leading-tight line-clamp-1">{product.name}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {formatCurrency(product.salePrice ?? product.price)}
-            </p>
-          </div>
-
-          <Separator />
-
-          {variantGroups.map((group) => (
-            <div key={group.type}>
-              <p className="text-xs font-semibold mb-1.5 capitalize">
-                {group.type}
-                {selected[group.type] && (
-                  <span className="ml-1.5 text-muted-foreground font-normal">— {selected[group.type]}</span>
-                )}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {group.values.map((v) => (
-                  <button
-                    key={v.value}
-                    type="button"
-                    disabled={!v.available}
-                    onClick={() => handleSelect(group.type, v.value)}
-                    className={cn(
-                      'min-w-[2rem] h-8 px-2.5 text-xs rounded-lg border transition-all flex items-center justify-center gap-1',
-                      !v.available && 'opacity-40 cursor-not-allowed line-through',
-                      selected[group.type] === v.value
-                        ? 'border-primary bg-primary/10 text-primary font-medium'
-                        : 'border-input hover:border-foreground/30'
-                    )}
-                  >
-                    {selected[group.type] === v.value && (
-                      <Check className="w-3 h-3" strokeWidth={2.5} />
-                    )}
-                    {v.value}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold">Quantity</p>
-            <div className="flex items-center border rounded-lg">
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="w-7 h-7 flex items-center justify-center hover:bg-accent transition-colors rounded-l-lg"
-              >
-                <Minus className="w-3 h-3" />
-              </button>
-              <span className="w-8 text-center text-xs font-mono font-medium">{quantity}</span>
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                className="w-7 h-7 flex items-center justify-center hover:bg-accent transition-colors rounded-r-lg"
-              >
-                <Plus className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
-          <Button
-            size="sm"
-            className="w-full"
-            onClick={handleConfirm}
-            disabled={!allSelected}
-          >
-            <ShoppingCart className="w-3.5 h-3.5 mr-1.5" strokeWidth={1.5} />
-            {allSelected ? 'Add to cart' : 'Select options'}
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function Separator() {
-  return <div className="h-px bg-border" />;
-}
 
 export default ProductCard;

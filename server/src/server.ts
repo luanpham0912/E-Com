@@ -82,19 +82,11 @@ export function buildApp(): Express {
   return app;
 }
 
-async function bootstrap() {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const { connectDB } = await import('./config/db.js');
   await connectDB();
-
   const app = buildApp();
   app.listen(config.port, () => {
     console.log(`[server] listening on http://localhost:${config.port}/api/v1`);
-  });
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  bootstrap().catch((err) => {
-    console.error('[fatal]', err);
-    process.exit(1);
   });
 }

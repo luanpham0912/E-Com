@@ -34,7 +34,7 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
                 <ShoppingBag className="w-4 h-4 text-primary-foreground" strokeWidth={1.5} />
               </div>
-              <span>Store</span>
+              <span>LuanP Store</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Curated goods for thoughtful living. Every product we carry has earned its place.
