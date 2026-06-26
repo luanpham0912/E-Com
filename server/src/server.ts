@@ -22,7 +22,9 @@ export function buildApp(): Express {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: [
             "'self'",
             "data:",
@@ -31,6 +33,11 @@ export function buildApp(): Express {
             "https://res.cloudinary.com",
             "https://api.dicebear.com",
           ],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
         },
       },
     })
