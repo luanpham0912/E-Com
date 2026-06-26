@@ -50,7 +50,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
     name,
     email: email.toLowerCase(),
     passwordHash,
-    avatar: `https://picsum.photos/seed/${email}/200/200`,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
     role: 'customer',
   });
 

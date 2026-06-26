@@ -29,13 +29,16 @@ export function buildApp(): Express {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
   
           imgSrc: [
-  
+
             "'self'",
-  
+
             "data:",
-  
+
             "https://images.unsplash.com",
-  
+            "https://api.dicebear.com",
+            "https:",
+            "blob:",
+
           ],
   
         },

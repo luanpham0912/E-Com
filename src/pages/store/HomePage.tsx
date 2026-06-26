@@ -98,7 +98,7 @@ export default function HomePage() {
           >
             <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-muted">
               <img
-                src="https://fastly.picsum.photos/seed/hero-store-main/1200/900"
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=900&fit=crop"
                 alt="Featured collection"
                 className="w-full h-full object-cover"
               />

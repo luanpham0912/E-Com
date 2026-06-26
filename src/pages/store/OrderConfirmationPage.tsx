@@ -70,7 +70,7 @@ export default function OrderConfirmationPage() {
             {order.items.map((item) => (
               <div key={`${item.productId}-${item.variant?.value}`} className="flex items-center gap-3">
                 <img
-                  src={`https://fastly.picsum.photos/seed/${item.productId}/100/100`}
+                  src={`https://images.unsplash.com/photo-1498049794561-7780e7231661?w=100&h=100&fit=crop`}
                   alt=""
                   className="w-10 h-10 rounded-lg object-cover bg-muted"
                 />
