@@ -18,36 +18,7 @@ import { errorHandler, notFound } from './middleware/error.js';
 export function buildApp(): Express {
   const app = express();
 
-  app.use(
-
-    helmet({
-  
-      contentSecurityPolicy: {
-  
-        directives: {
-  
-          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-  
-          imgSrc: [
-
-            "'self'",
-
-            "data:",
-
-            "https://images.unsplash.com",
-            "https://api.dicebear.com",
-            "https:",
-            "blob:",
-
-          ],
-  
-        },
-  
-      },
-  
-    })
-  
-  );
+  app.use(helmet());
   app.use(cors({
     origin: config.corsOrigin,
     credentials: true,
