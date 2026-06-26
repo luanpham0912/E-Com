@@ -70,7 +70,7 @@ export default function OrderConfirmationPage() {
             {order.items.map((item) => (
               <div key={`${item.productId}-${item.variant?.value}`} className="flex items-center gap-3">
                 <img
-                  src={`https://images.unsplash.com/photo-1498049794561-7780e7231661?w=100&h=100&fit=crop`}
+                  src={`https://res.cloudinary.com/dy3qtjmuy/image/upload/v1782456932/samples/people/jazz.jpg`}
                   alt=""
                   className="w-10 h-10 rounded-lg object-cover bg-muted"
                 />

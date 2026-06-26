@@ -109,7 +109,7 @@ export default function AccountPage() {
                         className="w-12 h-12 rounded-lg bg-muted overflow-hidden"
                       >
                         <img
-                          src={`https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop`}
+                          src={`https://res.cloudinary.com/dy3qtjmuy/image/upload/v1782456932/samples/bike.jpg`}
                           alt=""
                           className="w-full h-full object-cover"
                         />
