@@ -233,6 +233,15 @@ export default function LoginPage() {
             Continue as guest
           </a>
         </p>
+        <div className="text-sm text-muted-foreground mt-6 text-center ">
+          <p className="text-xs text-muted-foreground">account demo</p>
+          <p className="text-xs text-muted-foreground">
+            email: customer@store.com
+          </p>
+          <p className="text-xs text-muted-foreground">
+            password: customer123
+          </p>
+        </div>
       </motion.div>
     </div>
   );

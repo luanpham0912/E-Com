@@ -86,6 +86,15 @@ export default function AdminLoginPage() {
             </form>
           </CardContent>
         </Card>
+        <div className="text-sm text-muted-foreground mt-6 text-center ">
+          <p className="text-xs text-muted-foreground">account demo</p>
+          <p className="text-xs text-muted-foreground">
+            email: admin@store.com
+          </p>
+          <p className="text-xs text-muted-foreground">
+            password: admin123
+          </p>
+        </div>
       </motion.div>
     </div>
   );
